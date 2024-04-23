@@ -13,19 +13,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	TokenTtl               = 8 * time.Hour
-	Response               = "Получили объект User со следующими данными: login: %s, password: %s"
-	EmptyUserPassword      = "Пользователь передал пустое поле пароля"
-	EmptyUserPasswordError = "А где пароль-то?!"
-	EnvPassword            = "TODO_PASSWORD"
-	NoPasswordInEnv        = "Пароль не задан. Проверь указал ли ты TODO_PASSWORD"
-	NoPasswordInEnvLog     = "Пароль не задан. Проверь указал ли ты TODO_PASSWORD в окружении на сверере. Пускаю без пароля"
-	WrongPassword          = "Неправильный пароль"
-	TokenDone              = "Все проверки прошли. Токен выдали"
-	SuccessLogin           = "Похоже, что всё верно - выдаю токен =)"
-)
-
 type AuthSqlite struct {
 	db *sqlx.DB
 }
@@ -49,22 +36,19 @@ func (a *AuthSqlite) CheckAuth(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&u)
 	if err != nil {
-		logrus.Printf(Response, u.Login, u.Password)
 		c.JSON(500, gin.H{"error": err})
 		return
 	}
 
 	if u.Password == "" {
-		logrus.Error(EmptyUserPassword)
-		c.JSON(401, gin.H{"error": EmptyUserPasswordError})
+		c.JSON(401, gin.H{"error": "нет пароля"})
 		return
 	}
 
-	passwordENV := os.Getenv(EnvPassword)
+	passwordENV := os.Getenv("TODO_PASSWORD")
 
 	if len(passwordENV) == 0 {
-		logrus.Warn(NoPasswordInEnv)
-		c.JSON(200, gin.H{"warning": NoPasswordInEnvLog})
+		c.JSON(200, gin.H{"warning": "пароль не задан"})
 		return
 	}
 
@@ -74,8 +58,7 @@ func (a *AuthSqlite) CheckAuth(c *gin.Context) {
 		hashPass := generatePasswordHash(u.Password)
 
 		if hashPass != hashPassENV {
-			logrus.Error(WrongPassword)
-			c.JSON(401, gin.H{"warning": WrongPassword})
+			c.JSON(401, gin.H{"warning": "неверный пароль"})
 			return
 		}
 	}
@@ -89,7 +72,6 @@ func (a *AuthSqlite) CheckAuth(c *gin.Context) {
 		}
 
 		c.JSON(200, gin.H{"token": token})
-		logrus.Println(TokenDone)
 	}
 }
 
@@ -99,12 +81,11 @@ func GenerateJWT(username string) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &myClaims{
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(TokenTtl).Unix(),
+			ExpiresAt: time.Now().Add(8 * time.Hour).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 		username,
 	})
-	logrus.Println(SuccessLogin)
 
 	return token.SignedString([]byte(viper.Get("SIGN_KEY").(string)))
 }

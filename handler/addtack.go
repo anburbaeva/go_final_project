@@ -20,16 +20,6 @@ func (h *Handler) login(c *gin.Context) {
 	h.service.Authorization.CheckAuth(c)
 }
 
-const (
-	NewND       = "Получили объект NextDate со следующими данными: date: %s, now: %s, repeat: %s"
-	NewTask     = "Получили объект Task со следующими данными: date: %s, title: %s, comment: %s, repeat: %s"
-	NewSearch   = "Получен запрос на задачи с поисковым запросом: %v"
-	RequestTask = "Получен запрос на задачу с id: %v"
-	UpdateTask  = "Получили на обновление объект task со следующими данными: id: %s, date: %s, title: %s, comment: %s, repeat: %s"
-	DeletedTask = "Получен запрос на удаление задачи с id: %v"
-	TaskDone    = "Получен запрос на завершение задачи с id: %v"
-)
-
 func (h *Handler) nextDate(c *gin.Context) {
 	var nd model.NextDate
 
@@ -39,7 +29,6 @@ func (h *Handler) nextDate(c *gin.Context) {
 		NewResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	logrus.Printf(NewND, nd.Date, nd.Now, nd.Repeat)
 
 	str, err := h.service.TodoTask.NextDate(nd)
 	if err != nil {
@@ -58,7 +47,6 @@ func (h *Handler) createTask(c *gin.Context) {
 		NewResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	logrus.Printf(NewTask, task.Date, task.Title, task.Comment, task.Repeat)
 
 	id, err := h.service.TodoTask.CreateTask(task)
 	if err != nil {
@@ -71,7 +59,6 @@ func (h *Handler) createTask(c *gin.Context) {
 }
 func (h *Handler) getTaskById(c *gin.Context) {
 	id := c.Query("id")
-	logrus.Printf(RequestTask, id)
 	task, err := h.service.TodoTask.GetTaskById(id)
 	if err != nil {
 		logrus.Error(err)
@@ -82,7 +69,6 @@ func (h *Handler) getTaskById(c *gin.Context) {
 }
 func (h *Handler) getTasks(c *gin.Context) {
 	search := c.Query("search")
-	logrus.Printf(NewSearch, search)
 	list, err := h.service.TodoTask.GetTasks(search)
 	if err != nil {
 		logrus.Error(err)
@@ -101,8 +87,6 @@ func (h *Handler) updateTask(c *gin.Context) {
 		return
 	}
 
-	logrus.Printf(UpdateTask, task.ID, task.Date, task.Title, task.Comment, task.Repeat)
-
 	_, err = h.service.TodoTask.GetTaskById(task.ID)
 	if err != nil {
 		logrus.Error(err)
@@ -120,7 +104,6 @@ func (h *Handler) updateTask(c *gin.Context) {
 }
 func (h *Handler) deleteTask(c *gin.Context) {
 	id, _ := c.GetQuery("id")
-	logrus.Printf(DeletedTask, id)
 	err := h.service.TodoTask.DeleteTask(id)
 	if err != nil {
 		logrus.Error(err)
@@ -131,7 +114,6 @@ func (h *Handler) deleteTask(c *gin.Context) {
 }
 func (h *Handler) taskDone(c *gin.Context) {
 	id, _ := c.GetQuery("id")
-	logrus.Printf(TaskDone, id)
 	err := h.service.TodoTask.TaskDone(id)
 	if err != nil {
 		logrus.Error(err)

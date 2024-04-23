@@ -9,11 +9,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	WrongMethodEncoding = "Неверный метод кодирования: %v"
-	WrongToken          = "Неверный токен"
-)
-
 type Auth struct {
 	repo repository.Auth
 }
@@ -33,7 +28,7 @@ type myClaims struct {
 func (a *Auth) ParseToken(accessToken string) (bool, error) {
 	token, err := jwt.ParseWithClaims(accessToken, &myClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf(WrongMethodEncoding, token.Header["alg"])
+			return nil, fmt.Errorf("неправильный метод кодирования: %v", token.Header["alg"])
 		}
 		return []byte(viper.Get("SIGN_KEY").(string)), nil
 	})
@@ -42,11 +37,11 @@ func (a *Auth) ParseToken(accessToken string) (bool, error) {
 	}
 	claims, ok := token.Claims.(*myClaims)
 	if !ok || !token.Valid {
-		return false, fmt.Errorf(WrongToken)
+		return false, fmt.Errorf("неправильный токен")
 	}
 
 	if claims.Valid() != nil {
-		return false, fmt.Errorf(WrongToken)
+		return false, fmt.Errorf("неправильный токен")
 	}
 
 	return true, nil

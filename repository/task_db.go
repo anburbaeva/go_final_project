@@ -17,43 +17,17 @@ import (
 )
 
 const (
-	ErrInvalidRepeatValue              = "Некорректное значение повтора."
-	ErrRepeat                          = "Обрати внимание вот сюда: %v."
-	AllowedDaysRange                   = "Допускается от 1 до 400 дней."
-	AllowedWeekdaysRange               = "Допускается w <через запятую от 1 до 7>."
-	AllowedDaysAndMonthRange           = "m <через запятую от 1 до 31,-1,-2> [через запятую от 1 до 12]"
-	InvalidDateMessage                 = "Некорректная дата."
-	UnableToConvertRepeatToNumberError = "Не удалось сконвертировать повтор в число."
-	ErrorParseDate                     = "Не смог разобрать вот это: %s."
-	MonthNumberRange                   = "Допускается m <через запятую от 1 до 12>."
-	WrongDate                          = "некорректная дата создания события: %v"
-	WrongRepeat                        = "Проблемы с форматом повтора, погляди сюда повтор: %v"
-	TaskNameRequiredErrorMessage       = "Название задачи не может быть пустым."
-	TaskNotFoundErrorMessage           = "Задача не найдена"
-	TaskIdRequiredErrorMessage         = "Не указан идентификатор"
-	InvalidTaskIdErrorMessage          = "Некорректный идентификатор"
-	PrefixRepeatM                      = "m "
-	PrefixRepeatD                      = "d "
-	PrefixRepeatW                      = "w "
-	PrefixDay                          = 'd'
-	PrefixWeek                         = 'w'
-	PrefixMonth                        = 'm'
-	PrefixYear                         = 'y'
-	SeparatorSpace                     = " "
-	SeparatorComma                     = ","
-	Format_yyyymmdd                    = `20060102`
-	Format_dd_mm_yyyy                  = `02.01.2006`
-	FirstDay                           = 1
-	MinusOneDay                        = -1
-	AddingOneMounth                    = 1
-	MinRepeatIntervalDays              = 1
-	MaxRepeatIntervalDay               = 31
-	MinMinusRepeatIntervalDay          = -2
-	MaxRepeatIntervalDays              = 400
-	MinMonths                          = 1
-	MaxMonths                          = 12
-	MinWeek                            = 1
-	MAX_WEEK                           = 7
+	FirstDay                  = 1
+	MinusOneDay               = -1
+	AddingOneMounth           = 1
+	MinRepeatIntervalDays     = 1
+	MaxRepeatIntervalDay      = 31
+	MinMinusRepeatIntervalDay = -2
+	MaxRepeatIntervalDays     = 400
+	MinMonths                 = 1
+	MaxMonths                 = 12
+	MinWeek                   = 1
+	MAX_WEEK                  = 7
 	OneWeek
 	LimitTasks = 25
 )
@@ -68,24 +42,24 @@ func NewTodoTaskSqlite(db *sqlx.DB) *TodoTaskSqlite {
 
 func (t *TodoTaskSqlite) NextDate(nd model.NextDate) (string, error) {
 	if nd.Repeat == "" {
-		return "", fmt.Errorf(WrongRepeat, nd.Repeat)
+		return "", fmt.Errorf("неправильный формат повтора: %v", nd.Repeat)
 	}
 
 	if !regexp.MustCompile(`^([wdm]\s.*|y)?$`).MatchString(nd.Repeat) {
-		return "", fmt.Errorf(WrongRepeat, nd.Repeat)
+		return "", fmt.Errorf("неправильный формат повтора: %v", nd.Repeat)
 	}
 
 	switch nd.Repeat[0] {
-	case PrefixDay:
+	case 'd':
 		repeatIntervalDays, err := findRepeatIntervalDays(nd)
 		return repeatIntervalDays, err
-	case PrefixYear:
+	case 'y':
 		repeatIntervalYears, err := findRepeatIntervalYears(nd)
 		return repeatIntervalYears, err
-	case PrefixWeek:
+	case 'w':
 		repeatIntervalWeeks, err := findRepeatIntervalWeeks(nd)
 		return repeatIntervalWeeks, err
-	case PrefixMonth:
+	case 'm':
 		repeatIntervalMonths, err := findRepeatIntervalMonths(nd)
 		return repeatIntervalMonths, err
 	default:
@@ -98,7 +72,7 @@ func (t *TodoTaskSqlite) CreateTask(task model.Task) (int64, error) {
 		return 0, err
 	}
 
-	query := fmt.Sprintf("INSERT INTO %s (title, comment, date, repeat) VALUES ($1, $2, $3, $4) RETURNING id", TaskTable)
+	query := fmt.Sprintf("INSERT INTO %s (title, comment, date, repeat) VALUES ($1, $2, $3, $4) RETURNING id", "scheduler")
 	row := t.db.QueryRow(query, task.Title, task.Comment, task.Date, task.Repeat)
 
 	var id int64
@@ -114,15 +88,15 @@ func (t *TodoTaskSqlite) GetTasks(search string) (model.ListTasks, error) {
 
 	switch typeSearch(search) {
 	case 0:
-		query = fmt.Sprintf("SELECT * FROM %s ORDER BY date LIMIT ?", TaskTable)
+		query = fmt.Sprintf("SELECT * FROM %s ORDER BY date LIMIT ?", "scheduler")
 		err := t.db.Select(&tasks, query, LimitTasks)
 		if err != nil {
 			return model.ListTasks{}, err
 		}
 	case 1:
-		s, _ := time.Parse(Format_dd_mm_yyyy, search)
-		st := s.Format(Format_yyyymmdd)
-		query = fmt.Sprintf("SELECT * FROM %s WHERE date = ? ORDER BY date LIMIT ?", TaskTable)
+		s, _ := time.Parse(`20060102`, search)
+		st := s.Format(`20060102`)
+		query = fmt.Sprintf("SELECT * FROM %s WHERE date = ? ORDER BY date LIMIT ?", "scheduler")
 		err := t.db.Select(&tasks, query, st, LimitTasks)
 		if err != nil {
 			return model.ListTasks{}, err
@@ -151,16 +125,16 @@ func (t *TodoTaskSqlite) GetTasks(search string) (model.ListTasks, error) {
 }
 func (t *TodoTaskSqlite) GetTaskById(id string) (model.Task, error) {
 	if id == "" {
-		return model.Task{}, fmt.Errorf(TaskIdRequiredErrorMessage)
+		return model.Task{}, fmt.Errorf("нет идентификатора")
 	}
 	if _, err := strconv.Atoi(id); err != nil {
-		return model.Task{}, fmt.Errorf(InvalidTaskIdErrorMessage)
+		return model.Task{}, fmt.Errorf("неправильный идентификатор")
 	}
 	var task model.Task
-	query := fmt.Sprintf("SELECT * FROM %s WHERE id = ?", TaskTable)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE id = ?", "scheduler")
 	err := t.db.Get(&task, query, id)
 	if err != nil {
-		return model.Task{}, fmt.Errorf(TaskNotFoundErrorMessage)
+		return model.Task{}, fmt.Errorf("задача не найдена")
 	}
 	return task, err
 }
@@ -170,10 +144,10 @@ func (t *TodoTaskSqlite) UpdateTask(task model.Task) error {
 		return err
 	}
 
-	query := fmt.Sprintf("UPDATE %s SET title = ?, comment = ?, date = ?, repeat = ? WHERE id = ?", TaskTable)
+	query := fmt.Sprintf("UPDATE %s SET title = ?, comment = ?, date = ?, repeat = ? WHERE id = ?", "scheduler")
 	_, err = t.db.Exec(query, task.Title, task.Comment, task.Date, task.Repeat, task.ID)
 	if err != nil {
-		return fmt.Errorf(TaskNotFoundErrorMessage)
+		return fmt.Errorf("задача не найдена")
 	}
 	return nil
 }
@@ -182,7 +156,7 @@ func (t *TodoTaskSqlite) DeleteTask(id string) error {
 	if err != nil {
 		return err
 	}
-	queryDelete := fmt.Sprintf("DELETE FROM %s WHERE id = ?", TaskTable)
+	queryDelete := fmt.Sprintf("DELETE FROM %s WHERE id = ?", "scheduler")
 	_, err = t.db.Exec(queryDelete, id)
 	if err != nil {
 		return err
@@ -196,7 +170,7 @@ func (t *TodoTaskSqlite) TaskDone(id string) error {
 	}
 
 	if task.Repeat == "" {
-		queryDeleteTask := fmt.Sprintf("DELETE FROM %s WHERE id = ?", TaskTable)
+		queryDeleteTask := fmt.Sprintf("DELETE FROM %s WHERE id = ?", "scheduler")
 		logrus.Println(queryDeleteTask)
 		t.db.Exec(queryDeleteTask, id)
 		return nil
@@ -204,7 +178,7 @@ func (t *TodoTaskSqlite) TaskDone(id string) error {
 
 	nd := model.NextDate{
 		Date:   task.Date,
-		Now:    time.Now().Format(Format_yyyymmdd),
+		Now:    time.Now().Format(`20060102`),
 		Repeat: task.Repeat,
 	}
 
@@ -214,7 +188,7 @@ func (t *TodoTaskSqlite) TaskDone(id string) error {
 	}
 
 	task.Date = newDate
-	queryUpdateTask := fmt.Sprintf("UPDATE %s SET date = ? WHERE id = ?", TaskTable)
+	queryUpdateTask := fmt.Sprintf("UPDATE %s SET date = ? WHERE id = ?", "scheduler")
 	logrus.Println(queryUpdateTask)
 	_, err = t.db.Exec(queryUpdateTask, task.Date, id)
 	if err != nil {
@@ -225,22 +199,22 @@ func (t *TodoTaskSqlite) TaskDone(id string) error {
 }
 func (t *TodoTaskSqlite) checkTask(task *model.Task) error {
 	if task.Title == "" {
-		return fmt.Errorf(TaskNameRequiredErrorMessage)
+		return fmt.Errorf("название не может быть пустым")
 	}
 
 	if !regexp.MustCompile(`^([wdm]\s.*|y)?$`).MatchString(task.Repeat) {
-		return fmt.Errorf(WrongRepeat, task.Repeat)
+		return fmt.Errorf("неправильный формат повтора: %v", task.Repeat)
 	}
 
-	now := time.Now().Format(Format_yyyymmdd)
+	now := time.Now().Format(`20060102`)
 
 	if task.Date == "" {
 		task.Date = now
 	}
 
-	_, err := time.Parse(Format_yyyymmdd, task.Date)
+	_, err := time.Parse(`20060102`, task.Date)
 	if err != nil {
-		return fmt.Errorf(InvalidDateMessage)
+		return fmt.Errorf("неправильная дата")
 	}
 
 	if task.Date < now {
@@ -266,22 +240,17 @@ func findRepeatIntervalDays(nd model.NextDate) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	stringRepeatIntervalDays := strings.TrimPrefix(nd.Repeat, PrefixRepeatD)
+	stringRepeatIntervalDays := strings.TrimPrefix(nd.Repeat, "d ")
 	repeatIntervalDays, err := strconv.Atoi(stringRepeatIntervalDays)
-	if err != nil {
-		return ErrInvalidRepeatValue, fmt.Errorf(ErrRepeat, nd.Repeat)
-	}
-	if repeatIntervalDays < MinRepeatIntervalDays || repeatIntervalDays > MaxRepeatIntervalDays {
-		return ErrInvalidRepeatValue + AllowedDaysRange, fmt.Errorf(ErrRepeat, nd.Repeat)
-	}
+
 	searchDate := nd.Date
 
-	for searchDate <= now.Format(Format_yyyymmdd) || searchDate <= nd.Date {
-		d, err := time.Parse(Format_yyyymmdd, searchDate)
+	for searchDate <= now.Format(`20060102`) || searchDate <= nd.Date {
+		d, err := time.Parse(`20060102`, searchDate)
 		if err != nil {
-			return InvalidDateMessage, fmt.Errorf(ErrorParseDate, nd.Date)
+			return "неправильная дата", fmt.Errorf("непонятно: %v", nd.Date)
 		}
-		searchDate = d.AddDate(0, 0, repeatIntervalDays).Format(Format_yyyymmdd)
+		searchDate = d.AddDate(0, 0, repeatIntervalDays).Format(`20060102`)
 	}
 	return searchDate, nil
 }
@@ -290,40 +259,40 @@ func findRepeatIntervalMonths(nd model.NextDate) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	repeatSrt := strings.TrimPrefix(nd.Repeat, PrefixRepeatM)
-	isConstainsNumMonth := strings.Contains(repeatSrt, SeparatorSpace)
+	repeatSrt := strings.TrimPrefix(nd.Repeat, "m ")
+	isConstainsNumMonth := strings.Contains(repeatSrt, " ")
 	monthsSlice := make([]string, 0)
 	months := make([]int, 0)
 	if isConstainsNumMonth {
-		IndexSep := strings.Index(repeatSrt, SeparatorSpace)
+		IndexSep := strings.Index(repeatSrt, " ")
 		repeatSrtMounth := repeatSrt[IndexSep+1:]
 		repeatSrt = repeatSrt[:IndexSep]
-		monthsSlice = strings.Split(repeatSrtMounth, SeparatorComma)
+		monthsSlice = strings.Split(repeatSrtMounth, ",")
 
 		for _, v := range monthsSlice {
 			vi, err := strconv.Atoi(strings.TrimSpace(v))
 			if err != nil {
-				return ErrInvalidRepeatValue, err
+				return "неправильное значение повтора.", err
 			}
 			if vi < MinMonths || vi > MaxMonths {
-				return ErrInvalidRepeatValue + MonthNumberRange,
-					fmt.Errorf(ErrRepeat, nd.Repeat)
+				return "неправильное значение повтора." + "нужно m <через запятую от 1 до 12>.",
+					fmt.Errorf("ошибка здесь: %v", nd.Repeat)
 			}
 			months = append(months, vi)
 		}
 	}
 
-	monthDaysSlice := strings.Split(repeatSrt, SeparatorComma)
+	monthDaysSlice := strings.Split(repeatSrt, ",")
 
 	monthDays := make([]int, 0)
 
 	for _, v := range monthDaysSlice {
 		vi, err := strconv.Atoi(strings.TrimSpace(v))
 		if err != nil {
-			return UnableToConvertRepeatToNumberError, err
+			return "ошибка конвертации", err
 		}
 		if vi < MinMinusRepeatIntervalDay || vi > MaxRepeatIntervalDay {
-			return ErrInvalidRepeatValue + AllowedDaysAndMonthRange, fmt.Errorf(ErrRepeat, nd.Repeat)
+			return "нерпавильное значение повтора." + "m <через запятую от 1 до 31,-1,-2> [через запятую от 1 до 12]", fmt.Errorf("ошибка здесь: %v", nd.Repeat)
 		}
 		monthDays = append(monthDays, vi)
 	}
@@ -345,7 +314,7 @@ func findRepeatIntervalMonths(nd model.NextDate) (string, error) {
 	}
 
 	findNearestDate := findNearestDate(now, nd.Date, nextDates)
-	return findNearestDate.Format(Format_yyyymmdd), nil
+	return findNearestDate.Format(`20060102`), nil
 }
 func findRepeatIntervalWeeks(nd model.NextDate) (string, error) {
 	now, err := timeNow(nd)
@@ -353,26 +322,26 @@ func findRepeatIntervalWeeks(nd model.NextDate) (string, error) {
 		return "", err
 	}
 
-	weekdayNumber := strings.TrimPrefix(nd.Repeat, PrefixRepeatW)
-	weekDaysSlice := strings.Split(weekdayNumber, SeparatorComma)
+	weekdayNumber := strings.TrimPrefix(nd.Repeat, "w ")
+	weekDaysSlice := strings.Split(weekdayNumber, ",")
 
 	for _, v := range weekDaysSlice {
 		vi, err := strconv.Atoi(strings.TrimSpace(v))
 		if err != nil {
-			return UnableToConvertRepeatToNumberError, err
+			return "ошибка конвертации", err
 		}
 		if vi < MinWeek || vi > MAX_WEEK {
-			return ErrInvalidRepeatValue + AllowedWeekdaysRange, fmt.Errorf(ErrRepeat, nd.Repeat)
+			return "нерпавильное значение повтора." + "необходимо w <через запятую от 1 до 7>.", fmt.Errorf("ошибка здесь: %v", nd.Repeat)
 		}
 		findWeekday, err := findNextWeekDay(now, nd.Date, vi)
 		if err != nil {
-			return ErrInvalidRepeatValue, fmt.Errorf(ErrRepeat, nd.Repeat)
+			return "нерпавильное значение повтора.", fmt.Errorf("ошибка здесь: %v", nd.Repeat)
 		}
-		if findWeekday > nd.Date && findWeekday > now.Format(Format_yyyymmdd) {
+		if findWeekday > nd.Date && findWeekday > now.Format(`20060102`) {
 			return findWeekday, nil
 		}
 	}
-	return ErrInvalidRepeatValue + AllowedWeekdaysRange, fmt.Errorf(ErrRepeat, nd.Repeat)
+	return "нерпавильное значение повтора." + "необходимо w <через запятую от 1 до 7>.", fmt.Errorf("ошибка здесь: %v", nd.Repeat)
 }
 func findRepeatIntervalYears(nd model.NextDate) (string, error) {
 	now, err := timeNow(nd)
@@ -380,22 +349,22 @@ func findRepeatIntervalYears(nd model.NextDate) (string, error) {
 		return "", err
 	}
 
-	formattedNow := now.Format(Format_yyyymmdd)
+	formattedNow := now.Format(`20060102`)
 	searchDate := nd.Date
 
 	for searchDate <= formattedNow || searchDate <= nd.Date {
-		d, err := time.Parse(Format_yyyymmdd, searchDate)
+		d, err := time.Parse(`20060102`, searchDate)
 		if err != nil {
-			return InvalidDateMessage, fmt.Errorf(ErrRepeat, nd.Date)
+			return "неправильная дата", fmt.Errorf("ошибка здесь: %v", nd.Date)
 		}
-		searchDate = d.AddDate(1, 0, 0).Format(Format_yyyymmdd)
+		searchDate = d.AddDate(1, 0, 0).Format(`20060102`)
 	}
 	return searchDate, nil
 }
 func findNextWeekDay(now time.Time, date string, weekday int) (string, error) {
-	eventDate, err := time.Parse(Format_yyyymmdd, date)
+	eventDate, err := time.Parse(`20060102`, date)
 	if err != nil {
-		return "", fmt.Errorf(WrongDate, err)
+		return "", fmt.Errorf("неправильная дата события: %v", err)
 	}
 	currentWeekday := int(now.Weekday())
 	daysUntilWeekday := (weekday - currentWeekday + OneWeek) % OneWeek
@@ -405,11 +374,11 @@ func findNextWeekDay(now time.Time, date string, weekday int) (string, error) {
 		nextWeekday = eventDate.AddDate(0, 0, (OneWeek-currentWeekday+weekday)%OneWeek)
 	}
 
-	return nextWeekday.Format(Format_yyyymmdd), nil
+	return nextWeekday.Format(`20060102`), nil
 }
 func findDayOfMonth(now time.Time, date string, month, repeat int) time.Time {
 	var searchDay time.Time
-	maxDate, err := time.Parse(Format_yyyymmdd, date)
+	maxDate, err := time.Parse(`20060102`, date)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -449,7 +418,7 @@ func findNearestDate(now time.Time, date string, dates []time.Time) time.Time {
 	}
 
 	var nearestDate time.Time
-	dateToDate, err := time.Parse(Format_yyyymmdd, date)
+	dateToDate, err := time.Parse(`20060102`, date)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -471,9 +440,9 @@ func timeNow(nd model.NextDate) (time.Time, error) {
 	if nd.Now == "" {
 		now = time.Now()
 	}
-	now, err := time.Parse(Format_yyyymmdd, nd.Now)
+	now, err := time.Parse(`20060102`, nd.Now)
 	if err != nil {
-		return time.Time{}, fmt.Errorf(ErrorParseDate, nd.Now)
+		return time.Time{}, fmt.Errorf("непонятно: %v", nd.Now)
 	}
 	return now, nil
 }
@@ -481,7 +450,7 @@ func typeSearch(str string) int {
 	if str == "" {
 		return 0
 	}
-	_, err := time.Parse(Format_dd_mm_yyyy, str)
+	_, err := time.Parse(`20060102`, str)
 	if err == nil {
 		return 1
 	}

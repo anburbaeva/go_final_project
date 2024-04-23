@@ -1,0 +1,16 @@
+Port: "7540"
+DB:
+  SQLDriver: "sqlite"
+  DBFile: "./db/scheduler.db"
+  SQLCreateTables: >
+    CREATE TABLE IF NOT EXISTS scheduler (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT,
+      title TEXT,
+      comment TEXT,
+      repeat VARCHAR(128)
+    );
+  SQLCreateIndexes: >
+    CREATE INDEX IF NOT EXISTS idx_date ON scheduler (date);
+WEBDir: "./web"
+SIGN_KEY: "904wuETGPFUWP($9fjwGHlkdjfsaj9p4ghalsrg"

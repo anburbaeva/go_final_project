@@ -7,46 +7,49 @@ import (
 	"github.com/anburbaeva/go_final_project/handler"
 	"github.com/anburbaeva/go_final_project/repository"
 	"github.com/anburbaeva/go_final_project/service"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	_ "modernc.org/sqlite"
 )
 
 func main() {
-	checkDBDir()
-	gin.SetMode(gin.ReleaseMode)
+	err := existDBDir()
+	if err != nil {
+		logrus.Fatal(err)
+		return
+	}
 
 	if err := initConfig(); err != nil {
 		logrus.Fatal(err)
+		return
 	}
 
-	port := app.EnvPORT("TODO_PORT")
-	repo := repository.NewRepository(repository.GetDB())
-	srvr := service.NewService(repo)
-	handlers := handler.NewHandler(srvr)
-	serv := new(app.Server)
-	err := serv.Run(port, handlers.InitRoutes())
+	port := viper.Get("Port").(string)
+	newRepository := repository.NewRepository(repository.DB())
+	newService := service.NewService(newRepository)
+	newHandler := handler.NewHandler(newService)
+	newServer := new(app.Server)
+	err = newServer.Run(port, newHandler.Engine())
 	if err != nil {
 		logrus.Fatalf("ошибка в создании таблицы: %v", err)
+		return
 	}
 }
 
-func checkDBDir() {
-	dirName := "db"
+func existDBDir() error {
+	dirName := "./db"
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
-		err := os.Mkdir(dirName, 0700)
+		err := os.Mkdir(dirName, 0755)
 		if err != nil {
 			logrus.Fatalf("ошибка в создании таблицы: %v", err)
-			return
+			return err
 		}
-
 	}
+	return nil
 }
 
 func initConfig() error {
 	viper.AddConfigPath("config")
 	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
 	return viper.ReadInConfig()
 }

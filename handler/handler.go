@@ -2,7 +2,7 @@ package handler
 
 import (
 	"net/http"
-	"os"
+	"path"
 
 	"github.com/anburbaeva/go_final_project/service"
 	"github.com/spf13/viper"
@@ -18,13 +18,19 @@ func NewHandler(service *service.Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) InitRoutes() *gin.Engine {
+func (h *Handler) Engine() *gin.Engine {
 	router := gin.New()
 
-	router.POST("/api/signin", h.login)
+	webDir := viper.Get("WEBDir").(string)
+	urlCss := path.Join(webDir, "css")
+	urlJs := path.Join(webDir, "js")
+	urlIndex := path.Join(webDir, "index.html")
+	urlLogin := path.Join(webDir, "login.html")
+	urlFavicon := path.Join(webDir, "favicon.ico")
+
 	router.GET("/api/nextdate", h.nextDate)
 
-	api := router.Group("/api", h.authMiddleware)
+	api := router.Group("/api")
 	{
 		api.POST("/task", h.createTask)
 		api.GET("/task", h.getTaskById)
@@ -36,28 +42,19 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	static := router.Group("/")
 	{
-		static.StaticFS("./css", http.Dir(viper.Get("WEBDir").(string)+"/css"))
-		static.StaticFS("./js", http.Dir(viper.Get("WEBDir").(string)+"/js"))
+		static.StaticFS("./css", http.Dir(urlCss))
+		static.StaticFS("./js", http.Dir(urlJs))
 	}
 
 	router.GET("/", h.indexPage)
-	router.StaticFile("/index.html", "./web/index.html")
-	router.StaticFile("/login.html", "./web/login.html")
-	router.StaticFile("/favicon.ico", "./web/favicon.ico")
+	router.StaticFile("/index.html", urlIndex)
+	router.StaticFile("/login.html", urlLogin)
+	router.StaticFile("/favicon.ico", urlFavicon)
 
 	return router
 }
 
 func (h *Handler) indexPage(c *gin.Context) {
-	if os.Getenv("TODO_PASSWORD") == "" {
-		deleteCookie := &http.Cookie{
-			Name:     "token",
-			Value:    "",
-			Path:     "/",
-			MaxAge:   -1,
-			HttpOnly: true,
-		}
-		http.SetCookie(c.Writer, deleteCookie)
-	}
-	http.ServeFile(c.Writer, c.Request, "./web/index.html")
+	url := path.Join(viper.Get("WEBDir").(string), "index.html")
+	http.ServeFile(c.Writer, c.Request, url)
 }

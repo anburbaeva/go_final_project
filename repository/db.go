@@ -16,21 +16,23 @@ type Config struct {
 	DBFile    string
 }
 
-func GetDB() *sqlx.DB {
+func DB() *sqlx.DB {
 	dbName, err := CheckDb()
 	if err != nil {
 		logrus.Fatal(err)
+		return nil
 	}
 	sqlDriver := viper.GetString("DB.SQLDriver")
 	return sqlx.MustConnect(sqlDriver, dbName)
 }
 
 func CheckDb() (string, error) {
-	dbName := EnvDBFILE("TODO_DBFILE")
+	dbName := viper.Get("DB.DBFile").(string)
 
 	appPath, err := os.Executable()
 	if err != nil {
 		logrus.Fatal(err)
+		return "", err
 	}
 	dbFile := filepath.Join(filepath.Dir(appPath), dbName)
 	_, err = os.Stat(dbFile)
@@ -40,25 +42,18 @@ func CheckDb() (string, error) {
 	return dbName, nil
 }
 
-func EnvDBFILE(key string) string {
-	dbName := os.Getenv(key)
-	if len(dbName) == 0 {
-		dbName = viper.Get("DB.DBFile").(string)
-	}
-	return dbName
-}
-
 func installDB(dbName string) {
 	db, err := sql.Open("sqlite", dbName)
 	if err != nil {
 		logrus.Fatal("бд не открылось: ", err)
+		return
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	createTableSQL := viper.Get("DB.SQLCreateTables").(string)
 	_, err = db.Exec(createTableSQL)
-
-	createIndexSQL := viper.Get("DB.SQLCreateIndexes").(string)
-	_, err = db.Exec(createIndexSQL)
-
+	if err != nil {
+		logrus.Fatal("создание таблицы: ", err)
+		return
+	}
 }

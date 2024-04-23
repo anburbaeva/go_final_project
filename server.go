@@ -2,9 +2,7 @@ package app
 
 import (
 	"net/http"
-	"os"
-
-	"github.com/spf13/viper"
+	"time"
 )
 
 type Server struct {
@@ -13,16 +11,11 @@ type Server struct {
 
 func (s *Server) Run(port string, handler http.Handler) error {
 	s.httpserver = &http.Server{
-		Addr:    ":" + port,
-		Handler: handler,
+		Addr:           ":" + port,
+		Handler:        handler,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
 	}
 	return s.httpserver.ListenAndServe()
-}
-
-func EnvPORT(key string) string {
-	port := os.Getenv(key)
-	if len(port) == 0 {
-		port = viper.Get("Port").(string)
-	}
-	return port
 }

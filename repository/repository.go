@@ -2,14 +2,8 @@ package repository
 
 import (
 	"github.com/anburbaeva/go_final_project/model"
-	"github.com/gin-gonic/gin"
-
 	"github.com/jmoiron/sqlx"
 )
-
-type Auth interface {
-	CheckAuth(c *gin.Context)
-}
 
 type TodoTask interface {
 	NextDate(nd model.NextDate) (string, error)
@@ -22,13 +16,11 @@ type TodoTask interface {
 }
 
 type Repository struct {
-	Auth
 	TodoTask
 }
 
 func NewRepository(db *sqlx.DB) *Repository {
 	return &Repository{
-		Auth:     NewAuthSqlite(db),
 		TodoTask: NewTodoTaskSqlite(db),
 	}
 }

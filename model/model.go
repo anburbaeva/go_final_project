@@ -1,7 +1,5 @@
 package model
 
-const DatePattern string = "20060102"
-
 type NextDate struct {
 	Now    string `form:"now"`
 	Date   string `form:"date"`
@@ -12,7 +10,7 @@ type ListTasks struct {
 }
 
 type Task struct {
-	ID      string `json:"-"`
+	ID      string `json:"id"`
 	Date    string `json:"date"`
 	Title   string `json:"title"`
 	Comment string `json:"comment"`

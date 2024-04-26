@@ -12,6 +12,10 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const (
+	serverStartMessage = "Сервер успешно запущен на порту %s"
+)
+
 func main() {
 	err := existDBDir()
 	if err != nil {
@@ -25,6 +29,12 @@ func main() {
 	}
 
 	port := viper.Get("Port").(string)
+	if port == "7540" {
+		logrus.Infof(serverStartMessage, port)
+	} else {
+		logrus.Infof(serverStartMessage+" с конфигом %+v", port, viper.AllSettings())
+	}
+
 	newRepository := repository.NewRepository(repository.DB())
 	newService := service.NewService(newRepository)
 	newHandler := handler.NewHandler(newService)

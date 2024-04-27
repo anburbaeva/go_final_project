@@ -59,7 +59,7 @@ func existDBDir() error {
 }
 
 func initConfig() error {
-	viper.AddConfigPath("config")
-	viper.SetConfigName("config")
+	viper.AddConfigPath("storage")
+	viper.SetConfigName("storage")
 	return viper.ReadInConfig()
 }

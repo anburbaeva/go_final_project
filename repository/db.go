@@ -3,7 +3,6 @@ package repository
 import (
 	"database/sql"
 	"os"
-	"path/filepath"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
@@ -29,15 +28,14 @@ func DB() *sqlx.DB {
 func CheckDb() (string, error) {
 	dbName := viper.Get("DB.DBFile").(string)
 
-	appPath, err := os.Executable()
+	_, err := os.Stat(dbName)
 	if err != nil {
-		logrus.Fatal(err)
-		return "", err
-	}
-	dbFile := filepath.Join(filepath.Dir(appPath), dbName)
-	_, err = os.Stat(dbFile)
-	if err != nil {
-		installDB(dbName)
+		if os.IsNotExist(err) {
+			installDB(dbName)
+		} else {
+			logrus.Fatal(err)
+			return "", err
+		}
 	}
 	return dbName, nil
 }

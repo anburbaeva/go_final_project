@@ -53,9 +53,9 @@ func (h *Handler) createTask(c *gin.Context) {
 	c.JSON(200, gin.H{"id": id})
 
 }
-func (h *Handler) getTaskById(c *gin.Context) {
+func (h *Handler) getTask(c *gin.Context) {
 	id := c.Query("id")
-	task, err := h.service.TodoTask.GetTaskById(id)
+	task, err := h.service.TodoTask.GetTask(id)
 	if err != nil {
 		logrus.Error(err)
 		NewRespErr(c, http.StatusBadRequest, err.Error())
@@ -83,7 +83,7 @@ func (h *Handler) updateTask(c *gin.Context) {
 		return
 	}
 
-	_, err = h.service.TodoTask.GetTaskById(task.ID)
+	_, err = h.service.TodoTask.GetTask(task.ID)
 	if err != nil {
 		logrus.Error(err)
 		NewRespErr(c, http.StatusBadRequest, err.Error())
@@ -116,5 +116,6 @@ func (h *Handler) taskDone(c *gin.Context) {
 		NewRespErr(c, http.StatusBadRequest, err.Error())
 		return
 	}
+
 	c.JSON(200, gin.H{})
 }

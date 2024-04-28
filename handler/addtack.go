@@ -116,6 +116,5 @@ func (h *Handler) taskDone(c *gin.Context) {
 		NewRespErr(c, http.StatusBadRequest, err.Error())
 		return
 	}
-
 	c.JSON(200, gin.H{})
 }

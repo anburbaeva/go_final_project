@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"path"
 
 	"github.com/anburbaeva/go_final_project/service"
 	"github.com/spf13/viper"
@@ -21,6 +22,11 @@ func (h *Handler) Engine() *gin.Engine {
 	router := gin.New()
 
 	webDir := viper.Get("WEBDir").(string)
+	urlCss := path.Join(webDir, "css")
+	urlJs := path.Join(webDir, "js")
+	urlIndex := path.Join(webDir, "index.html")
+	urlLogin := path.Join(webDir, "login.html")
+	urlFavicon := path.Join(webDir, "favicon.ico")
 
 	router.GET("/api/nextdate", h.nextDate)
 
@@ -34,11 +40,21 @@ func (h *Handler) Engine() *gin.Engine {
 		api.DELETE("/task", h.deleteTask)
 	}
 
-	apiStatic := api.Group("/static")
+	static := router.Group("/")
 	{
-		apiStatic.StaticFS("/", http.Dir(webDir))
+		static.StaticFS("./css", http.Dir(urlCss))
+		static.StaticFS("./js", http.Dir(urlJs))
 	}
-	router.StaticFS("/", http.Dir(webDir))
+
+	router.GET("/", h.indexPage)
+	router.StaticFile("/index.html", urlIndex)
+	router.StaticFile("/login.html", urlLogin)
+	router.StaticFile("/favicon.ico", urlFavicon)
 
 	return router
+}
+
+func (h *Handler) indexPage(c *gin.Context) {
+	url := path.Join(viper.Get("WEBDir").(string), "index.html")
+	http.ServeFile(c.Writer, c.Request, url)
 }

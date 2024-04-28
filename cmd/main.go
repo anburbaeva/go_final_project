@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	app "github.com/anburbaeva/go_final_project"
@@ -14,6 +15,7 @@ import (
 
 const (
 	serverStartMessage = "Сервер успешно запущен на порту %s"
+	defaultPort        = "7540"
 )
 
 func main() {
@@ -28,14 +30,29 @@ func main() {
 		return
 	}
 
-	port := viper.Get("Port").(string)
-	if port == "7540" {
+	portValue := viper.Get("Port")
+	var port string
+
+	if portValue != nil {
+		p, ok := portValue.(string)
+		if !ok {
+			log.Fatalf("Ошибка: значение порта не является строкой")
+		}
+		port = p
+	} else {
+		port = defaultPort
+	}
+	if port == defaultPort {
 		logrus.Infof(serverStartMessage, port)
 	} else {
 		logrus.Infof(serverStartMessage+" с конфигом %+v", port, viper.AllSettings())
 	}
 
-	newRepository := repository.NewRepository(repository.DB())
+	db, err := repository.GetDB()
+	if err != nil {
+		log.Fatalf("Ошибка при инициализации базы данных: %v", err)
+	}
+	newRepository := repository.NewRepository(db)
 	newService := service.NewService(newRepository)
 	newHandler := handler.NewHandler(newService)
 	newServer := new(app.Server)

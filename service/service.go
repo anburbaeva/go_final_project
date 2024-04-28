@@ -19,6 +19,12 @@ type Service struct {
 	TodoTask
 }
 
+func NewService(repository *repository.Repository) *Service {
+	return &Service{
+		TodoTask: NewTodoTaskService(repository.TodoTask),
+	}
+}
+
 type TaskService struct {
 	repo repository.TodoTask
 }
@@ -46,10 +52,4 @@ func (t *TaskService) DeleteTask(id string) error {
 }
 func (t *TaskService) TaskDone(id string) error {
 	return t.repo.TaskDone(id)
-}
-
-func NewService(repository *repository.Repository) *Service {
-	return &Service{
-		TodoTask: NewTodoTaskService(repository.TodoTask),
-	}
 }

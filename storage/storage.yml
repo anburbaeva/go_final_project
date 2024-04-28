@@ -1,0 +1,4 @@
+DB:
+  SQLDriver: "sqlite"
+  DBFile: "./db/scheduler.db"
+WEBDir: "./web"

@@ -104,7 +104,7 @@ func (t *TodoTaskSqlite) GetTasks(search string) (model.ListTasks, error) {
 	}
 	return model.ListTasks{Tasks: tasks}, nil
 }
-func (t *TodoTaskSqlite) GetTaskById(id string) (model.Task, error) {
+func (t *TodoTaskSqlite) GetTask(id string) (model.Task, error) {
 	if id == "" {
 		return model.Task{}, fmt.Errorf("нет идентификатора")
 	}
@@ -133,7 +133,7 @@ func (t *TodoTaskSqlite) UpdateTask(task model.Task) error {
 	return nil
 }
 func (t *TodoTaskSqlite) DeleteTask(id string) error {
-	_, err := t.GetTaskById(id)
+	_, err := t.GetTask(id)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (t *TodoTaskSqlite) DeleteTask(id string) error {
 	return nil
 }
 func (t *TodoTaskSqlite) TaskDone(id string) error {
-	task, err := t.GetTaskById(id)
+	task, err := t.GetTask(id)
 	if err != nil {
 		return err
 	}
